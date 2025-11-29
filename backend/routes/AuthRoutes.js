@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController'); // Pastikan nama file controller sesuai (besar/kecil)
+const authController = require('../controllers/AuthController'); // Pastikan nama file controller sesuai (besar/kecil)
 
 const { validate, registerRules, loginRules } = require('../middleware/validators');
 
