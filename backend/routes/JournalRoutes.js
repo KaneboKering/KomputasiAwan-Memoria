@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const journalController = require('../controllers/JournalController');
-const authenticateToken = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const authenticateToken = require('../Middleware/authMiddleware');
+const upload = require('../Middleware/uploadMiddleware');
 
-const { validate, journalRules } = require('../middleware/validators');
+const { validate, journalRules } = require('../Middleware/validators');
 // Create & Read (Sudah ada)
 router.post('/', 
     authenticateToken, 
