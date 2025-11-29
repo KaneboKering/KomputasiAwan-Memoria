@@ -22,3 +22,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server berjalan di port ${PORT}`);
 });
+module.exports = app;
