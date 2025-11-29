@@ -10,10 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(express.json()); 
 app.use(cors());
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocs = require('./config/swagger');
-// ROUTE DEFINITION (Nanti kita buat file ini)
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/AuthRoutes');
 const journalRoutes = require('./routes/JournalRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/journals', journalRoutes);
