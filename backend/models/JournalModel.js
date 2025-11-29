@@ -18,8 +18,10 @@ const JournalModel = {
         query += ' ORDER BY created_at DESC';
 
         // Tambahkan batasan halaman (Pagination)
-        query += ' LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), parseInt(offset));
+        const limitNum = parseInt(limit) || 10;
+        const offsetNum = parseInt(offset) || 0;
+
+        query += ` LIMIT ${limitNum} OFFSET ${offsetNum}`;
 
         const [rows] = await db.execute(query, params);
         
