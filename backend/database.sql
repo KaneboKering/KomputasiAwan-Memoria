@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3308
--- Generation Time: Nov 29, 2025 at 04:46 AM
+-- Generation Time: Nov 29, 2025 at 06:35 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -49,6 +49,28 @@ INSERT INTO `journals` (`id`, `user_id`, `title`, `content`, `mood`, `created_at
 (6, 1, 'test 4', 'paginasi 4', 'Sakit', '2025-11-29 02:56:35', NULL),
 (7, 1, 'liburan ke singkawang bersama ayang', 'setelah selesai proker, aku dan ayang langsung menuju singkawang untuk jalan-jalan walau kehujanan tapi seru!', 'senang banget', '2025-11-29 03:33:54', '1764387703673-140848502.png');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `created_at`) VALUES
+(1, 'tester1', 'test@gmail.com', '$2b$10$ZiRVyZgrvpToQ0SV1S/G7ec/HjjafaVO9SRsu5ed9UG1DUdIBqOjS', '2025-11-28 12:55:04'),
+(2, 'budi', 'budi', '$2b$10$OFfIwlUH.jgKQO042aIH1eOZ0TladGKaLP.sZGXLEuqZZ8cuZwtNW', '2025-11-29 03:04:48');
+
 --
 -- Indexes for dumped tables
 --
@@ -61,6 +83,14 @@ ALTER TABLE `journals`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -69,6 +99,12 @@ ALTER TABLE `journals`
 --
 ALTER TABLE `journals`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
