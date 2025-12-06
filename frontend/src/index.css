@@ -59,3 +59,29 @@
     overflow: hidden;
   }
 }
+/* Custom Calendar Styles */
+.react-calendar {
+  width: 100% !important;
+  background: white !important;
+  border: none !important;
+  font-family: inherit !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+.react-calendar__tile--active {
+  background: #5B8FCC !important; /* Warna biru tema kita */
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+.react-calendar__tile--now {
+  background: #FFF4D1 !important; /* Warna cream */
+  border-radius: 8px !important;
+}
+
+.react-calendar__tile:hover {
+  background: #e6e6e6 !important;
+  border-radius: 8px !important;
+}

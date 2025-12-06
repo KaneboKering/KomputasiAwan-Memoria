@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Save, Trash2, Calendar, Image as ImageIcon, X } from 'lucide-react'
 import { journalService } from '../../services/api'
-import { formatDate, getMoodEmoji } from '../../utils/helpers'
+import { formatDate } from '../../utils/helpers'
 import Button from '../Shared/Button'
 
-const NoteEditor = ({ note, onSave, onDelete, showNotification }) => {
+const NoteEditor = ({ note, onSave, onDelete, showNotification, onCancel }) => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -115,7 +115,7 @@ const NoteEditor = ({ note, onSave, onDelete, showNotification }) => {
   ]
 
   return (
-    <div className="h-full flex flex-col bg-white/50 backdrop-blur-sm">
+    <div className="h-full flex flex-col bg-white/50 backdrop-blur-sm animate-slide-in">
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-white/80">
         <div className="flex items-center justify-between">
@@ -127,6 +127,15 @@ const NoteEditor = ({ note, onSave, onDelete, showNotification }) => {
           </div>
           
           <div className="flex gap-2">
+            {/* Tombol Batal Baru */}
+            <Button
+              variant="ghost"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Batal
+            </Button>
+
             <Button
               variant="success"
               onClick={handleSave}

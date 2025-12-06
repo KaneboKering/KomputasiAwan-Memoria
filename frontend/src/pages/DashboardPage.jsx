@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react'
+import { Menu, Plus } from 'lucide-react' // Import Icon Menu & Plus
 import { journalService } from '../services/api'
 import Header from '../components/Dashboard/Header'
 import Sidebar from '../components/Dashboard/Sidebar'
+import NotesList from '../components/Dashboard/NotesList'
 import NoteEditor from '../components/Dashboard/NoteEditor'
+import NoteReader from '../components/Dashboard/NoteReader'
 import EmptyState from '../components/Dashboard/EmptyState'
+import Button from '../components/Shared/Button' // Pastikan import Button
 
 const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
   const [notes, setNotes] = useState([])
   const [currentNote, setCurrentNote] = useState(null)
-  const [showEditor, setShowEditor] = useState(false)
+  const [mode, setMode] = useState('empty') 
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDate, setSelectedDate] = useState(null)
+  
+  // State baru untuk Hamburger Menu
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     loadNotes()
@@ -19,12 +27,9 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
   const loadNotes = async (query = '') => {
     try {
       const response = await journalService.getAll(query)
-
-      // Sort notes terbaru di atas
       const sortedNotes = (response.data || []).sort((a, b) =>
         new Date(b.created_at) - new Date(a.created_at)
       )
-
       setNotes(sortedNotes)
     } catch (error) {
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -37,9 +42,59 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     }
   }
 
+  // Filter Logic
+  const filteredNotes = notes.filter(note => {
+    if (selectedDate) {
+      if (!note.created_at) return false;
+      const noteDate = new Date(note.created_at);
+      const isSameDate = 
+        noteDate.getDate() === selectedDate.getDate() &&
+        noteDate.getMonth() === selectedDate.getMonth() &&
+        noteDate.getFullYear() === selectedDate.getFullYear();
+      if (!isSameDate) return false;
+    }
+    return true; 
+  });
+
   const handleSearch = (query) => {
     setSearchQuery(query)
-    loadNotes(query)
+    loadNotes(query) 
+  }
+
+  const handleCreateNew = () => {
+    setCurrentNote(null)
+    setMode('create') 
+  }
+
+  // --- LOGIKA BARU: Toggle Mode Baca ---
+  const handleSelectNote = (note) => {
+    // Jika note yang diklik SAMA dengan yang sedang dibuka DAN mode sedang 'read'
+    if (currentNote?.id === note.id && mode === 'read') {
+        // Maka TUTUP (Deselect)
+        setCurrentNote(null);
+        setMode('empty');
+    } else {
+        // Buka note baru
+        setCurrentNote(note);
+        setMode('read');
+    }
+  }
+
+  const handleEditNote = () => {
+    setMode('edit') 
+  }
+
+  const handleSaveSuccess = async () => {
+    await loadNotes(searchQuery)
+    setMode('read') 
+    showNotification('Catatan berhasil disimpan!', 'success')
+  }
+
+  const handleDeleteNote = async () => {
+    setCurrentNote(null)
+    setMode('empty')
+    await loadNotes(searchQuery)
+    showNotification('Catatan berhasil dihapus!', 'success')
   }
 
   const handleLogout = () => {
@@ -48,56 +103,111 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     showNotification('Logout berhasil!', 'success')
   }
 
-  const handleCreateNew = () => {
-    setCurrentNote(null)
-    setShowEditor(true)
-  }
-
-  const handleSelectNote = (note) => {
-    setCurrentNote(note)
-    setShowEditor(true)
-  }
-
-  const handleSaveNote = async () => {
-    await loadNotes(searchQuery)
-    setShowEditor(false)
-    setCurrentNote(null)
-    showNotification('Catatan berhasil disimpan!', 'success')
-  }
-
-  const handleDeleteNote = async () => {
-    setCurrentNote(null)
-    setShowEditor(false)
-    await loadNotes(searchQuery)
-    showNotification('Catatan berhasil dihapus!', 'success')
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-100 via-beige-100 to-blue-300">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header onLogout={handleLogout} />
       
-      <div className="flex h-[calc(100vh-80px)]">
-        <Sidebar
-          notes={notes}
-          currentNote={currentNote}
-          onCreateNew={handleCreateNew}
-          onSelectNote={handleSelectNote}
-          onSearch={handleSearch}
-          loading={loading}
-        />
+      {/* Component Sidebar sekarang bertindak sebagai Drawer/Menu */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        notes={notes}
+        onSearch={handleSearch}
+        selectedDate={selectedDate}
+        onDateSelect={setSelectedDate}
+      />
+      
+      {/* Layout 2 Kolom: List (Kiri) | Konten (Kanan) */}
+      <div className="flex flex-1 overflow-hidden relative">
         
-        <div className="flex-1 overflow-auto">
-          {showEditor ? (
+        {/* Kolom Kiri: List & Toolbar */}
+        <div className="w-full md:w-[400px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-lg md:shadow-none">
+          
+          {/* Toolbar Strategis: Menu & Tambah */}
+          <div className="p-4 border-b border-gray-100 flex gap-3 items-center bg-white/80 backdrop-blur sticky top-0 z-20">
+            <Button 
+                variant="secondary" 
+                onClick={() => setIsSidebarOpen(true)}
+                className="!p-3 rounded-xl shadow-none border border-gray-200 hover:border-blue-300"
+                title="Buka Menu & Filter"
+            >
+                <Menu className="w-5 h-5 text-gray-600" />
+            </Button>
+
+            <Button
+                variant="primary"
+                className="flex-1 shadow-blue-200/50"
+                onClick={handleCreateNew}
+                icon={<Plus className="w-5 h-5" />}
+            >
+                Buat Catatan
+            </Button>
+          </div>
+
+          {/* Info Filter Aktif (Opsional) */}
+          {(selectedDate || searchQuery) && (
+             <div className="px-4 py-2 bg-yellow-50 text-xs text-yellow-700 border-b border-yellow-100">
+               Filter aktif: {selectedDate ? 'Tanggal' : ''} {selectedDate && searchQuery ? '&' : ''} {searchQuery ? 'Pencarian' : ''}
+             </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+             <NotesList
+                notes={filteredNotes}
+                currentNote={currentNote}
+                onSelectNote={handleSelectNote}
+                loading={loading}
+             />
+          </div>
+        </div>
+
+        {/* Kolom Kanan: Konten */}
+        <div className="flex-1 bg-gray-50 h-full overflow-hidden relative hidden md:block">
+          {mode === 'empty' && <EmptyState onCreateNew={handleCreateNew} />}
+          
+          {mode === 'read' && currentNote && (
+            <NoteReader 
+              note={currentNote} 
+              onEdit={handleEditNote} 
+              onDelete={handleDeleteNote}
+              onClose={() => setMode('empty')}
+            />
+          )}
+
+          {(mode === 'create' || mode === 'edit') && (
             <NoteEditor
-              note={currentNote}
-              onSave={handleSaveNote}
+              note={mode === 'edit' ? currentNote : null}
+              onSave={handleSaveSuccess}
               onDelete={handleDeleteNote}
               showNotification={showNotification}
+              onCancel={() => currentNote ? setMode('read') : setMode('empty')}
             />
-          ) : (
-            <EmptyState onCreateNew={handleCreateNew} />
           )}
         </div>
+
+        {/* Mobile View: Overlay Konten (Jika di HP, konten menutupi list) */}
+        {mode !== 'empty' && (
+            <div className="absolute inset-0 bg-white z-20 md:hidden">
+                 {mode === 'read' && currentNote && (
+                    <NoteReader 
+                    note={currentNote} 
+                    onEdit={handleEditNote} 
+                    onDelete={handleDeleteNote}
+                    onClose={() => setMode('empty')}
+                    />
+                )}
+                {(mode === 'create' || mode === 'edit') && (
+                    <NoteEditor
+                    note={mode === 'edit' ? currentNote : null}
+                    onSave={handleSaveSuccess}
+                    onDelete={handleDeleteNote}
+                    showNotification={showNotification}
+                    onCancel={() => currentNote ? setMode('read') : setMode('empty')}
+                    />
+                )}
+            </div>
+        )}
+
       </div>
     </div>
   )
