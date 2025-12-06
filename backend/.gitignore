@@ -1,8 +1,7 @@
-# Dependency (Folder ini bisa di-install ulang, jadi tidak perlu di-push)
 node_modules/
-
-# Environment Variables (RAHASIA! Jangan sampai bocor)
 .env
 
-# Uploads (Data user lokal tidak perlu ikut ke server)
-uploads/
+# Abaikan semua isi folder uploads
+uploads/*
+# KECUALI file .gitkeep (agar folder tetap ter-create)
+!uploads/.gitkeep

@@ -1,74 +1,100 @@
-import axios from 'axios'
+const API_BASE_URL = 'https://komputasiawan-memoria-production.up.railway.app/api';
 
-const API_BASE_URL = 'https://komputasiawan-memoria-production.up.railway.app/api'
+// --- Helper: Fetch Wrapper pengganti Axios ---
+const fetchAPI = async (endpoint, options = {}) => {
+  // 1. Ambil Token Otomatis
+  const token = localStorage.getItem('token');
+  
+  const headers = {
+    ...options.headers
+  };
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-})
 
-// Interceptor untuk menambahkan token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+  const config = {
+    ...options,
+    headers
+  };
 
-// Auth Services
+  // 2. Auto-detect JSON Body
+  // Jika body adalah object biasa (bukan FormData), ubah ke JSON string & set header
+  if (config.body && !(config.body instanceof FormData) && typeof config.body === 'object') {
+    config.headers['Content-Type'] = 'application/json';
+    config.body = JSON.stringify(config.body);
+  }
+
+  // 3. Eksekusi Fetch
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+  // 4. Handle Error seperti Axios (Throw error jika status bukan 2xx)
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(errorData.message || 'Terjadi kesalahan API');
+    
+    // Kita buat struktur error mirip Axios biar frontend tidak perlu diubah banyak
+    error.response = {
+      status: response.status,
+      data: errorData
+    };
+    throw error;
+  }
+
+  // 5. Handle response kosong (misal delete 204)
+  if (response.status === 204) return null;
+
+  // 6. Return data JSON langsung
+  return response.json();
+};
+
+// --- Service Definitions ---
+
 export const authService = {
   register: async (data) => {
-    const response = await api.post('/auth/register', data)
-    return response.data
+    return fetchAPI('/auth/register', {
+      method: 'POST',
+      body: data
+    });
   },
   
   login: async (data) => {
-    const response = await api.post('/auth/login', data)
-    return response.data
+    return fetchAPI('/auth/login', {
+      method: 'POST',
+      body: data
+    });
   }
-}
+};
 
-// Journal Services
 export const journalService = {
   getAll: async (search = '') => {
-    const url = search ? `/journals?search=${encodeURIComponent(search)}` : '/journals'
-    const response = await api.get(url)
-    return response.data
+    const url = search ? `/journals?search=${encodeURIComponent(search)}` : '/journals';
+    return fetchAPI(url, { method: 'GET' });
   },
   
   getById: async (id) => {
-    const response = await api.get(`/journals/${id}`)
-    return response.data
+    return fetchAPI(`/journals/${id}`, { method: 'GET' });
   },
   
   create: async (formData) => {
-    const response = await api.post('/journals', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    return response.data
+    return fetchAPI('/journals', {
+      method: 'POST',
+      body: formData
+      // PENTING: Jangan set Content-Type manual untuk FormData
+      // Browser akan otomatis menambahkan boundary
+    });
   },
   
   update: async (id, formData) => {
-    const response = await api.put(`/journals/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    return response.data
+    return fetchAPI(`/journals/${id}`, {
+      method: 'PUT',
+      body: formData
+    });
   },
   
   delete: async (id) => {
-    const response = await api.delete(`/journals/${id}`)
-    return response.data
+    return fetchAPI(`/journals/${id}`, { method: 'DELETE' });
   }
-}
+};
 
-export default api
+// Tidak perlu export default api lagi karena kita pakai named exports
