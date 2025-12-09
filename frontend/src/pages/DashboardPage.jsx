@@ -90,11 +90,31 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     showNotification('Catatan berhasil disimpan!', 'success')
   }
 
-  const handleDeleteNote = async () => {
-    setCurrentNote(null)
-    setMode('empty')
-    await loadNotes(searchQuery)
-    showNotification('Catatan berhasil dihapus!', 'success')
+  const handleDeleteNote = async (noteId) => {
+    // 1. Tentukan ID yang mau dihapus
+    // Jika diklik dari Reader, noteId dikirim sebagai parameter
+    // Jika tidak, ambil dari state currentNote
+    const targetId = noteId || currentNote?.id;
+    
+    if (!targetId) return;
+
+    // 2. Konfirmasi User (Pindah ke sini agar seragam)
+    if (!window.confirm('Yakin ingin menghapus catatan ini?')) return;
+
+    setLoading(true);
+
+    try {
+      await journalService.delete(targetId);
+
+      setCurrentNote(null);
+      setMode('empty');
+      await loadNotes(searchQuery);
+      showNotification('Catatan berhasil dihapus!', 'success');
+    } catch (error) {
+      showNotification('Gagal menghapus catatan', 'error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleLogout = () => {
@@ -169,7 +189,7 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
             <NoteReader 
               note={currentNote} 
               onEdit={handleEditNote} 
-              onDelete={handleDeleteNote}
+              onDelete={() => handleDeleteNote(currentNote.id)}
               onClose={() => setMode('empty')}
             />
           )}
@@ -178,7 +198,7 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
             <NoteEditor
               note={mode === 'edit' ? currentNote : null}
               onSave={handleSaveSuccess}
-              onDelete={handleDeleteNote}
+              onDelete={() => handleDeleteNote(currentNote?.id)}
               showNotification={showNotification}
               onCancel={() => currentNote ? setMode('read') : setMode('empty')}
             />

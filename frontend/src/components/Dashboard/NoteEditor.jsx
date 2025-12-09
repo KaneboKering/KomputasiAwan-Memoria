@@ -87,20 +87,9 @@ const NoteEditor = ({ note, onSave, onDelete, showNotification, onCancel }) => {
     }
   }
 
-  const handleDelete = async () => {
-    if (!note?.id) return
-    
-    if (!window.confirm('Yakin ingin menghapus catatan ini?')) return
-
-    setLoading(true)
-
-    try {
-      await journalService.delete(note.id)
-      onDelete()
-    } catch (error) {
-      showNotification('Gagal menghapus catatan', 'error')
-    } finally {
-      setLoading(false)
+  const handleDelete = () => {
+    if (onDelete) {
+        onDelete();
     }
   }
 
