@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Menu, Plus } from 'lucide-react' // Import Icon Menu & Plus
+import { Menu, Plus, ArrowLeft } from 'lucide-react' // Tambah ArrowLeft
 import { journalService } from '../services/api'
 import Header from '../components/Dashboard/Header'
 import Sidebar from '../components/Dashboard/Sidebar'
@@ -7,7 +7,7 @@ import NotesList from '../components/Dashboard/NotesList'
 import NoteEditor from '../components/Dashboard/NoteEditor'
 import NoteReader from '../components/Dashboard/NoteReader'
 import EmptyState from '../components/Dashboard/EmptyState'
-import Button from '../components/Shared/Button' // Pastikan import Button
+import Button from '../components/Shared/Button'
 
 const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
   const [notes, setNotes] = useState([])
@@ -16,8 +16,6 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDate, setSelectedDate] = useState(null)
-  
-  // State baru untuk Hamburger Menu
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -42,7 +40,6 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     }
   }
 
-  // Filter Logic
   const filteredNotes = notes.filter(note => {
     if (selectedDate) {
       if (!note.created_at) return false;
@@ -66,15 +63,11 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     setMode('create') 
   }
 
-  // --- LOGIKA BARU: Toggle Mode Baca ---
   const handleSelectNote = (note) => {
-    // Jika note yang diklik SAMA dengan yang sedang dibuka DAN mode sedang 'read'
     if (currentNote?.id === note.id && mode === 'read') {
-        // Maka TUTUP (Deselect)
         setCurrentNote(null);
         setMode('empty');
     } else {
-        // Buka note baru
         setCurrentNote(note);
         setMode('read');
     }
@@ -84,28 +77,33 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     setMode('edit') 
   }
 
+  // --- PERBAIKAN UTAMA DI SINI ---
   const handleSaveSuccess = async () => {
     await loadNotes(searchQuery)
-    setMode('read') 
+    
+    // Cek apakah ini Edit atau Create Baru?
+    if (currentNote && currentNote.id) {
+        // Jika Edit, kembali ke mode baca note tersebut
+        setMode('read')
+    } else {
+        // Jika Create Baru, kembali ke mode empty (Tampilkan List)
+        // Ini mencegah layar putih di mobile karena tidak ada 'currentNote' untuk ditampilkan
+        setCurrentNote(null)
+        setMode('empty')
+    }
+    
     showNotification('Catatan berhasil disimpan!', 'success')
   }
 
   const handleDeleteNote = async (noteId) => {
-    // 1. Tentukan ID yang mau dihapus
-    // Jika diklik dari Reader, noteId dikirim sebagai parameter
-    // Jika tidak, ambil dari state currentNote
     const targetId = noteId || currentNote?.id;
-    
     if (!targetId) return;
 
-    // 2. Konfirmasi User (Pindah ke sini agar seragam)
     if (!window.confirm('Yakin ingin menghapus catatan ini?')) return;
 
     setLoading(true);
-
     try {
       await journalService.delete(targetId);
-
       setCurrentNote(null);
       setMode('empty');
       await loadNotes(searchQuery);
@@ -127,7 +125,6 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header onLogout={handleLogout} />
       
-      {/* Component Sidebar sekarang bertindak sebagai Drawer/Menu */}
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -137,19 +134,15 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
         onDateSelect={setSelectedDate}
       />
       
-      {/* Layout 2 Kolom: List (Kiri) | Konten (Kanan) */}
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Kolom Kiri: List & Toolbar */}
+        {/* Kolom Kiri: List */}
         <div className="w-full md:w-[400px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-lg md:shadow-none">
-          
-          {/* Toolbar Strategis: Menu & Tambah */}
           <div className="p-4 border-b border-gray-100 flex gap-3 items-center bg-white/80 backdrop-blur sticky top-0 z-20">
             <Button 
                 variant="secondary" 
                 onClick={() => setIsSidebarOpen(true)}
                 className="!p-3 rounded-xl shadow-none border border-gray-200 hover:border-blue-300"
-                title="Buka Menu & Filter"
             >
                 <Menu className="w-5 h-5 text-gray-600" />
             </Button>
@@ -164,10 +157,9 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
             </Button>
           </div>
 
-          {/* Info Filter Aktif (Opsional) */}
           {(selectedDate || searchQuery) && (
              <div className="px-4 py-2 bg-yellow-50 text-xs text-yellow-700 border-b border-yellow-100">
-               Filter aktif: {selectedDate ? 'Tanggal' : ''} {selectedDate && searchQuery ? '&' : ''} {searchQuery ? 'Pencarian' : ''}
+               Filter aktif
              </div>
           )}
 
@@ -181,7 +173,7 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
           </div>
         </div>
 
-        {/* Kolom Kanan: Konten */}
+        {/* Kolom Kanan (Desktop) */}
         <div className="flex-1 bg-gray-50 h-full overflow-hidden relative hidden md:block">
           {mode === 'empty' && <EmptyState onCreateNew={handleCreateNew} />}
           
@@ -205,26 +197,41 @@ const DashboardPage = ({ setIsAuthenticated, showNotification }) => {
           )}
         </div>
 
-        {/* Mobile View: Overlay Konten (Jika di HP, konten menutupi list) */}
+        {/* Mobile View: Overlay Konten */}
         {mode !== 'empty' && (
-            <div className="absolute inset-0 bg-white z-20 md:hidden">
-                 {mode === 'read' && currentNote && (
-                    <NoteReader 
-                    note={currentNote} 
-                    onEdit={handleEditNote} 
-                    onDelete={handleDeleteNote}
-                    onClose={() => setMode('empty')}
-                    />
-                )}
-                {(mode === 'create' || mode === 'edit') && (
-                    <NoteEditor
-                    note={mode === 'edit' ? currentNote : null}
-                    onSave={handleSaveSuccess}
-                    onDelete={handleDeleteNote}
-                    showNotification={showNotification}
-                    onCancel={() => currentNote ? setMode('read') : setMode('empty')}
-                    />
-                )}
+            <div className="absolute inset-0 bg-white z-20 md:hidden flex flex-col animate-slide-in">
+                {/* Tombol Back Khusus Mobile */}
+                <div className="p-4 border-b border-gray-100 flex items-center gap-2 bg-white sticky top-0 z-30">
+                    <button 
+                        onClick={() => setMode('empty')}
+                        className="p-2 hover:bg-gray-100 rounded-full"
+                    >
+                        <ArrowLeft className="w-6 h-6 text-gray-600" />
+                    </button>
+                    <span className="font-semibold text-gray-700">
+                        {mode === 'create' ? 'Catatan Baru' : (mode === 'edit' ? 'Edit Catatan' : 'Detail')}
+                    </span>
+                </div>
+
+                <div className="flex-1 overflow-hidden relative">
+                    {mode === 'read' && currentNote && (
+                        <NoteReader 
+                        note={currentNote} 
+                        onEdit={handleEditNote} 
+                        onDelete={() => handleDeleteNote(currentNote.id)}
+                        onClose={() => setMode('empty')}
+                        />
+                    )}
+                    {(mode === 'create' || mode === 'edit') && (
+                        <NoteEditor
+                        note={mode === 'edit' ? currentNote : null}
+                        onSave={handleSaveSuccess}
+                        onDelete={() => handleDeleteNote(currentNote?.id)}
+                        showNotification={showNotification}
+                        onCancel={() => currentNote ? setMode('read') : setMode('empty')}
+                        />
+                    )}
+                </div>
             </div>
         )}
 
